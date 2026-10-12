@@ -18,7 +18,7 @@ h2{margin:22px 0 12px}.exercise-grid{display:grid;grid-template-columns:1fr 1fr;
 .delete-attempt{background:#fee2e2;color:#991b1b;border:0;border-radius:10px;padding:8px 10px;font-weight:850;cursor:pointer}
 .delete-attempt:hover{background:#fecaca}
 .manage-note{margin:14px 0 0;padding:12px 14px;border-radius:12px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-size:.92rem}
-.manager{margin:18px 0 22px;background:#fff;border:1px solid #dbe3ef;border-radius:18px;padding:18px}
+.manager{margin:18px 0 22px;background:#fff;border:1px solid #dbe3ef;border-radius:18px;padding:18px}.import-box{margin-top:16px;padding:16px;border:1px dashed #93c5fd;border-radius:14px;background:#eff6ff}.import-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}.import-btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:11px;padding:11px 14px;background:#2563eb;color:#fff;font-weight:850;cursor:pointer}.import-btn.secondary{background:#e2e8f0;color:#0f172a}#importFile{display:none}#importPreview{margin-top:12px;padding:12px;border-radius:12px;background:#fff;border:1px solid #bfdbfe;display:none}.import-ok{color:#166534;font-weight:800}.import-error{color:#991b1b;font-weight:800}.delete-custom{border:0;border-radius:9px;padding:7px 9px;background:#fee2e2;color:#991b1b;font-weight:800;cursor:pointer}
 .manager h2{margin:0 0 6px}
 .manager-grid{display:grid;gap:10px;margin-top:14px}
 .manager-row{display:grid;grid-template-columns:minmax(180px,1fr) 120px 110px 90px;gap:10px;align-items:center;padding:12px;border:1px solid #e2e8f0;border-radius:12px}
@@ -87,6 +87,18 @@ h2{margin:22px 0 12px}.exercise-grid{display:grid;grid-template-columns:1fr 1fr;
 <section class="manager">
   <h2>Pilotage des exercices</h2>
   <div style="color:#64748b">Choisis ce qu’Abel voit dans son portail. Le compteur « ouvertures » augmente dès qu’il ouvre un chapitre, même s’il ne fait pas le test.</div>
+
+  <div class="import-box">
+    <strong>📥 Importer une activité JSON</strong>
+    <div style="color:#64748b;margin-top:4px">Le fichier est vérifié avant l’enregistrement. Une nouvelle activité reste masquée pour Abel tant que tu ne l’actives pas.</div>
+    <div class="import-actions">
+      <label class="import-btn" for="importFile">Choisir un JSON</label>
+      <input id="importFile" type="file" accept=".json,application/json">
+      <button id="confirmImport" class="import-btn" style="display:none">Importer dans Firebase</button>
+    </div>
+    <div id="importPreview"></div>
+  </div>
+
   <div id="managerGrid" class="manager-grid"></div>
 </section>
 
@@ -123,6 +135,51 @@ function fmt(ts){
   return d.toLocaleString("fr-FR",{dateStyle:"short",timeStyle:"short"});
 }
 
+
+const JSON_SCHEMA_ID="abel-maths-activity-v1";
+let customActivities={};
+let pendingImport=null;
+
+function validateActivityJson(a){
+  const errors=[];
+  if(!a || typeof a!=="object") return ["Le fichier doit contenir un objet JSON."];
+  if(a.schema!==JSON_SCHEMA_ID) errors.push('schema doit être "'+JSON_SCHEMA_ID+'".');
+  if(!/^[a-z0-9_-]{3,50}$/.test(a.id||"")) errors.push("id invalide.");
+  if(typeof a.title!=="string" || a.title.trim().length<3) errors.push("title manquant ou trop court.");
+  if(typeof a.description!=="string") errors.push("description manquante.");
+  if(!Array.isArray(a.lesson) || !a.lesson.length) errors.push("lesson doit contenir au moins un bloc.");
+  if(!Array.isArray(a.quiz) || a.quiz.length!==8) errors.push("quiz doit contenir exactement 8 questions.");
+
+  const allowedBlocks=new Set(["text","note","formula","squares","numberLine","fractionBar","gauge","memo"]);
+  (a.lesson||[]).forEach((b,i)=>{
+    if(!b || !allowedBlocks.has(b.type)) errors.push("Bloc "+(i+1)+" : type non autorisé.");
+  });
+
+  (a.quiz||[]).forEach((q,i)=>{
+    if(!q || !["choice","number"].includes(q.type)) errors.push("Question "+(i+1)+" : type invalide.");
+    if(typeof q?.question!=="string" || !q.question.trim()) errors.push("Question "+(i+1)+" : texte manquant.");
+    if(typeof q?.explanation!=="string") errors.push("Question "+(i+1)+" : explanation manquante.");
+    if(q?.type==="choice"){
+      if(!Array.isArray(q.choices) || q.choices.length<2 || q.choices.length>6) errors.push("Question "+(i+1)+" : choix invalides.");
+      if(!Number.isInteger(q.answer) || q.answer<0 || q.answer>=(q.choices?.length||0)) errors.push("Question "+(i+1)+" : answer invalide.");
+    }
+    if(q?.type==="number" && typeof q.answer!=="number") errors.push("Question "+(i+1)+" : réponse numérique invalide.");
+  });
+  return errors;
+}
+
+function sanitizeActivity(a){
+  return {
+    schema:JSON_SCHEMA_ID,
+    id:a.id,
+    title:a.title.trim(),
+    emoji:(typeof a.emoji==="string" && a.emoji.trim()) ? a.emoji.trim().slice(0,8) : "🧠",
+    description:a.description.trim(),
+    lesson:a.lesson,
+    quiz:a.quiz
+  };
+}
+
 const EXERCISES=[
   {id:"puissances",name:"Les puissances",available:true},
   {id:"pythagore",name:"Théorème de Pythagore",available:true},
@@ -144,23 +201,51 @@ function renderManager(){
   if(!grid) return;
   grid.innerHTML="";
 
-  EXERCISES.forEach(ex=>{
+  const merged=[];
+  const seen=new Set();
+
+  EXERCISES.forEach(base=>{
+    const custom=customActivities[base.id];
+    if(custom){
+      merged.push({id:custom.id,name:custom.title,emoji:custom.emoji||"🧠",available:true,custom:true});
+    }else{
+      merged.push(base);
+    }
+    seen.add(base.id);
+  });
+
+  Object.values(customActivities).forEach(a=>{
+    if(!seen.has(a.id)){
+      merged.push({id:a.id,name:a.title,emoji:a.emoji||"🧠",available:true,custom:true});
+    }
+  });
+
+  merged.forEach(ex=>{
     const row=document.createElement("div");
     row.className="manager-row"+(ex.available?"":" future");
-    const count=Number(usageData[ex.id]?.ouvertures)||0;
+    const openings=Number(usageData[ex.id]?.ouvertures)||0;
     const enabled=exerciseConfig[ex.id]===true;
+
+    const attempts=(typeof historyRows!=="undefined")
+      ? historyRows.filter(r=>r.exerciceId===ex.id)
+      : [];
+    const best=attempts.length ? Math.max(...attempts.map(r=>Number(r.score)||0)) : null;
+    const total=attempts.length ? (Number(attempts[0].totalQuestions)||8) : 8;
 
     row.innerHTML=`
       <div>
-        <div class="manager-name">${ex.name}</div>
-        <div class="manager-meta">${ex.available ? "Disponible dans le portail Abel" : "Prévu — contenu à construire"}</div>
+        <div class="manager-name">${ex.emoji||""} ${ex.name}</div>
+        <div class="manager-meta">${ex.custom ? "Activité JSON importée" : (ex.available ? "Disponible dans le portail Abel" : "Prévu — contenu à construire")}</div>
       </div>
-      <div class="open-count">${count} ouverture${count>1?"s":""}</div>
+      <div class="open-count">${openings} ouv. • ${attempts.length} test${attempts.length>1?"s":""}${best!==null?" • "+best+"/"+total:""}</div>
       <div class="avail ${ex.available?"":"future"}">${ex.available?"Disponible":"À construire"}</div>
-      <label class="switch">
-        <input type="checkbox" data-toggle="${ex.id}" ${enabled?"checked":""} ${ex.available?"":"disabled"}>
-        <span class="slider"></span>
-      </label>`;
+      <div style="display:flex;gap:8px;align-items:center;justify-content:flex-end">
+        <label class="switch">
+          <input type="checkbox" data-toggle="${ex.id}" ${enabled?"checked":""} ${ex.available?"":"disabled"}>
+          <span class="slider"></span>
+        </label>
+        ${ex.custom ? `<button class="delete-custom" data-delete-custom="${ex.id}" title="Supprimer">🗑</button>` : ""}
+      </div>`;
     grid.appendChild(row);
   });
 
@@ -176,15 +261,102 @@ function renderManager(){
         );
         status.textContent="✓ Visibilité de l’exercice mise à jour";
       }catch(err){
-        console.error(err);
         input.checked=!value;
         alert("Impossible d’enregistrer ce réglage : "+(err.code||err.message));
       }
     });
   });
+
+  grid.querySelectorAll("[data-delete-custom]").forEach(btn=>{
+    btn.addEventListener("click",async()=>{
+      const id=btn.dataset.deleteCustom;
+      const a=customActivities[id];
+      if(!a || !confirm('Supprimer l’activité « '+a.title+' » ?')) return;
+      try{
+        await deleteDoc(doc(db,"eleves","abel","catalogue",id));
+        await setDoc(doc(db,"eleves","abel","config","exercices"),{[id]:false,majLe:serverTimestamp(),majPar:"parent"},{merge:true});
+        status.textContent="✓ Activité importée supprimée";
+      }catch(err){
+        alert("Suppression impossible : "+(err.code||err.message));
+      }
+    });
+  });
 }
 
+
+const importFile=document.getElementById("importFile");
+const importPreview=document.getElementById("importPreview");
+const confirmImport=document.getElementById("confirmImport");
+
+importFile.addEventListener("change",async()=>{
+  pendingImport=null;
+  confirmImport.style.display="none";
+  importPreview.style.display="block";
+
+  const file=importFile.files?.[0];
+  if(!file){
+    importPreview.style.display="none";
+    return;
+  }
+
+  try{
+    const raw=JSON.parse(await file.text());
+    const errors=validateActivityJson(raw);
+
+    if(errors.length){
+      importPreview.innerHTML='<div class="import-error">❌ JSON refusé</div><ul>'+errors.map(e=>'<li>'+e+'</li>').join("")+'</ul>';
+      return;
+    }
+
+    pendingImport=sanitizeActivity(raw);
+    importPreview.innerHTML=
+      '<div class="import-ok">✅ Fichier valide</div>'+
+      '<div><strong>'+pendingImport.emoji+' '+pendingImport.title+'</strong></div>'+
+      '<div>'+pendingImport.description+'</div>'+
+      '<div style="margin-top:6px;color:#64748b">'+pendingImport.lesson.length+' bloc(s) de cours • 8 questions</div>';
+    confirmImport.style.display="inline-flex";
+  }catch(e){
+    importPreview.innerHTML='<div class="import-error">❌ Fichier illisible : '+e.message+'</div>';
+  }
+});
+
+confirmImport.addEventListener("click",async()=>{
+  if(!pendingImport) return;
+  try{
+    const a=pendingImport;
+    await setDoc(
+      doc(db,"eleves","abel","catalogue",a.id),
+      {activity:a,schema:JSON_SCHEMA_ID,importedAt:serverTimestamp(),importedBy:"parent"},
+      {merge:false}
+    );
+    await setDoc(
+      doc(db,"eleves","abel","config","exercices"),
+      {[a.id]:false,majLe:serverTimestamp(),majPar:"parent"},
+      {merge:true}
+    );
+    importPreview.innerHTML='<div class="import-ok">✅ Activité importée et masquée par défaut. Active-la dans la liste lorsque tu veux.</div>';
+    confirmImport.style.display="none";
+    importFile.value="";
+    pendingImport=null;
+  }catch(e){
+    importPreview.innerHTML='<div class="import-error">❌ Import impossible : '+(e.code||e.message)+'</div>';
+  }
+});
+
 function listenExerciseManagement(){
+  unsubs.push(onSnapshot(
+    collection(db,"eleves","abel","catalogue"),
+    snap=>{
+      customActivities={};
+      snap.forEach(ds=>{
+        const d=ds.data();
+        if(d?.activity?.id) customActivities[d.activity.id]=d.activity;
+      });
+      renderManager();
+    },
+    err=>console.error("Lecture catalogue impossible",err)
+  ));
+
   unsubs.push(onSnapshot(
     doc(db,"eleves","abel","config","exercices"),
     snap=>{
@@ -194,16 +366,26 @@ function listenExerciseManagement(){
     err=>console.error("Lecture configuration impossible",err)
   ));
 
-  EXERCISES.forEach(ex=>{
+  const watched=new Set();
+  function watchUsage(id){
+    if(watched.has(id)) return;
+    watched.add(id);
     unsubs.push(onSnapshot(
-      doc(db,"eleves","abel","usage",ex.id),
+      doc(db,"eleves","abel","usage",id),
       snap=>{
-        usageData[ex.id]=snap.exists()?snap.data():{};
+        usageData[id]=snap.exists()?snap.data():{};
         renderManager();
       },
-      err=>console.warn("Lecture usage impossible",ex.id,err)
+      err=>console.warn("Lecture usage impossible",id,err)
     ));
-  });
+  }
+
+  EXERCISES.forEach(ex=>watchUsage(ex.id));
+
+  unsubs.push(onSnapshot(
+    collection(db,"eleves","abel","catalogue"),
+    snap=>snap.forEach(ds=>watchUsage(ds.id))
+  ));
 }
 
 let historyRows=[];
