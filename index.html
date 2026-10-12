@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Suivi Parent — Abel</title>
+<style>
+:root{--bg:#f4f7fb;--card:#fff;--text:#1f2937;--muted:#64748b;--blue:#2563eb;--green:#16a34a;--border:#dbe3ef}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(135deg,#eef3f8,#f8fafc);color:var(--text)}
+.app{max-width:1180px;margin:auto;padding:18px} header{background:linear-gradient(135deg,#0f172a,#1e3a8a 55%,#2563eb);color:#fff;border-radius:22px;padding:24px;box-shadow:0 12px 30px rgba(15,23,42,.18)}
+.top{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}h1{margin:0;font-size:clamp(28px,4vw,42px)}.sub{margin:5px 0 0;opacity:.9}
+button{border:0;border-radius:12px;padding:11px 14px;font-weight:800;cursor:pointer}.login{background:#fff;color:#1d4ed8}.logout{background:#e2e8f0;color:#0f172a}
+#status{margin-top:12px;font-size:.9rem;opacity:.9}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:18px}
+.card{background:#fff;border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:0 6px 18px rgba(15,23,42,.06)}.value{font-size:2rem;font-weight:950;margin-top:4px}.label{color:var(--muted);font-size:.9rem}
+h2{margin:22px 0 12px}.exercise-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.progress{height:13px;background:#e2e8f0;border-radius:999px;overflow:hidden;margin:12px 0 14px}.progress>div{height:100%;background:linear-gradient(90deg,#2563eb,#16a34a);width:0%}
+.metric{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid #edf1f6}.metric:last-child{border-bottom:0}.metric span:first-child{color:var(--muted)}.timeline{display:grid;gap:10px}.event{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px;display:grid;grid-template-columns:160px 1fr auto;gap:12px;align-items:center}
+.badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#dcfce7;color:#166534;font-size:.85rem;font-weight:850}#authCover{position:fixed;inset:0;background:#eef3f8;z-index:50;display:flex;align-items:center;justify-content:center;padding:20px}.authCard{max-width:430px;background:#fff;border-radius:22px;padding:26px;text-align:center;box-shadow:0 15px 40px rgba(15,23,42,.15)}.authCard button{background:#2563eb;color:#fff;width:100%;margin-top:10px}.hidden{display:none!important}
+@media(max-width:850px){.summary{grid-template-columns:1fr 1fr}.exercise-grid{grid-template-columns:1fr}.event{grid-template-columns:1fr}}@media(max-width:520px){.summary{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="authCover">
+  <div class="authCard">
+    <div style="font-size:52px">👨‍👦</div>
+    <h2>Suivi Parent — Abel</h2>
+    <p>Connexion réservée au compte parent autorisé.</p>
+    <button id="googleLogin">Se connecter avec Google</button>
+    <div id="authError" style="color:#dc2626;font-weight:800;margin-top:12px"></div>
+  </div>
+</div>
+
+<div class="app">
+<header>
+  <div class="top">
+    <div><h1>👨‍👦 Suivi Parent — Abel</h1><p class="sub">Progression des exercices de mathématiques</p></div>
+    <button id="logoutBtn" class="login hidden">Déconnexion</button>
+  </div>
+  <div id="status">Connexion à Firebase…</div>
+</header>
+
+<section class="summary">
+  <div class="card"><div class="label">Exercices disponibles</div><div class="value">2</div></div>
+  <div class="card"><div class="label">Exercices commencés</div><div id="sumStarted" class="value">0</div></div>
+  <div class="card"><div class="label">Tentatives terminées</div><div id="sumAttempts" class="value">0</div></div>
+  <div class="card"><div class="label">Meilleure moyenne</div><div id="sumAvg" class="value">0%</div></div>
+</section>
+
+<h2>Progression par exercice</h2>
+<section class="exercise-grid">
+  <article class="card">
+    <h3>⚡ Puissances</h3><div class="progress"><div id="puissancesBar"></div></div>
+    <div class="metric"><span>Meilleur score</span><strong id="puissancesBest">—</strong></div>
+    <div class="metric"><span>Dernier score</span><strong id="puissancesLast">—</strong></div>
+    <div class="metric"><span>Tentatives</span><strong id="puissancesAttempts">0</strong></div>
+    <div class="metric"><span>Dernière activité</span><strong id="puissancesDate">—</strong></div>
+  </article>
+  <article class="card">
+    <h3>📐 Théorème de Pythagore</h3><div class="progress"><div id="pythagoreBar"></div></div>
+    <div class="metric"><span>Meilleur score</span><strong id="pythagoreBest">—</strong></div>
+    <div class="metric"><span>Dernier score</span><strong id="pythagoreLast">—</strong></div>
+    <div class="metric"><span>Tentatives</span><strong id="pythagoreAttempts">0</strong></div>
+    <div class="metric"><span>Dernière activité</span><strong id="pythagoreDate">—</strong></div>
+  </article>
+</section>
+
+<h2>Activité récente</h2>
+<section id="timeline" class="timeline"><div class="card">Aucune activité enregistrée pour le moment.</div></section>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+
+
+const firebaseConfig = {
+  apiKey: "AIzaSyANWFmBc0aBbisVTaLmlizoJI8qc46B1mo",
+  authDomain: "site-tfab.firebaseapp.com",
+  projectId: "site-tfab",
+  storageBucket: "site-tfab.firebasestorage.app",
+  messagingSenderId: "804495487367",
+  appId: "1:804495487367:web:243ca6ae9085df9b3de322",
+  measurementId: "G-SQ4X5X2Z2W"
+};
+
+
+const PARENT_EMAIL="jfabriceturpin@gmail.com";
+const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
+const cover=document.getElementById("authCover"),err=document.getElementById("authError"),status=document.getElementById("status"),logoutBtn=document.getElementById("logoutBtn");
+const data={puissances:null,pythagore:null};
+const unsubs=[];
+
+function fmt(ts){
+  if(!ts)return "—";
+  const d=ts.toDate?ts.toDate():new Date(ts);
+  return d.toLocaleString("fr-FR",{dateStyle:"short",timeStyle:"short"});
+}
+function render(){
+  let started=0,attempts=0,sumPct=0,count=0;
+  for(const id of ["puissances","pythagore"]){
+    const d=data[id];
+    if(!d)continue;
+    started++; attempts+=d.tentatives||0;
+    const total=d.totalQuestions||8,best=d.meilleurScore||0,pct=Math.round(best/total*100);
+    sumPct+=pct;count++;
+    document.getElementById(id+"Bar").style.width=pct+"%";
+    document.getElementById(id+"Best").textContent=`${best} / ${total} (${pct}%)`;
+    document.getElementById(id+"Last").textContent=d.dernierScore==null?"—":`${d.dernierScore} / ${total}`;
+    document.getElementById(id+"Attempts").textContent=d.tentatives||0;
+    document.getElementById(id+"Date").textContent=fmt(d.derniereActivite);
+  }
+  document.getElementById("sumStarted").textContent=started;
+  document.getElementById("sumAttempts").textContent=attempts;
+  document.getElementById("sumAvg").textContent=(count?Math.round(sumPct/count):0)+"%";
+}
+
+function listenData(){
+  for(const id of ["puissances","pythagore"]){
+    unsubs.push(onSnapshot(doc(db,"eleves","abel","exercices",id),snap=>{data[id]=snap.exists()?snap.data():null;render()}));
+  }
+  const q=query(collection(db,"eleves","abel","historique"),orderBy("date","desc"),limit(20));
+  unsubs.push(onSnapshot(q,snap=>{
+    const t=document.getElementById("timeline");
+    if(snap.empty){t.innerHTML='<div class="card">Aucune activité enregistrée pour le moment.</div>';return}
+    t.innerHTML="";
+    snap.forEach(ds=>{
+      const d=ds.data();
+      const div=document.createElement("div");div.className="event";
+      div.innerHTML=`<div style="color:#64748b">${fmt(d.date)}</div><div><strong>${d.exerciceNom||d.exerciceId}</strong><br><span style="color:#64748b">Score : ${d.score} / ${d.totalQuestions} — ${d.pourcentage}%</span></div><span class="badge">Terminé</span>`;
+      t.appendChild(div);
+    });
+  }));
+}
+
+document.getElementById("googleLogin").onclick=async()=>{
+  try{err.textContent="";await signInWithPopup(auth,new GoogleAuthProvider())}catch(e){err.textContent=e.message}
+};
+logoutBtn.onclick=()=>signOut(auth);
+
+onAuthStateChanged(auth,user=>{
+  unsubs.splice(0).forEach(fn=>fn());
+  if(!user){
+    cover.classList.remove("hidden");logoutBtn.classList.add("hidden");status.textContent="Non connecté";return;
+  }
+  if((user.email||"").toLowerCase()!==PARENT_EMAIL.toLowerCase()){
+    err.textContent="Ce compte Google n’est pas autorisé.";
+    signOut(auth);return;
+  }
+  cover.classList.add("hidden");logoutBtn.classList.remove("hidden");status.textContent="✓ Firebase connecté — "+user.email;
+  listenData();
+});
+</script>
+</body>
+</html>
