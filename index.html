@@ -74,7 +74,7 @@ h2{margin:22px 0 12px}.exercise-grid{display:grid;grid-template-columns:1fr 1fr;
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-auth.js";
-import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit, deleteDoc, getDocs, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
+import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
 
 
 const firebaseConfig = {
@@ -90,7 +90,6 @@ const firebaseConfig = {
 const PARENT_EMAIL="jfabriceturpin@gmail.com";
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
 const cover=document.getElementById("authCover"),err=document.getElementById("authError"),status=document.getElementById("status"),logoutBtn=document.getElementById("logoutBtn");
-const data={puissances:null,pythagore:null};
 const unsubs=[];
 
 function fmt(ts){
@@ -98,119 +97,79 @@ function fmt(ts){
   const d=ts.toDate?ts.toDate():new Date(ts);
   return d.toLocaleString("fr-FR",{dateStyle:"short",timeStyle:"short"});
 }
+let historyRows=[];
+
 function render(){
-  let started=0,attempts=0,sumPct=0,count=0;
+  const byExercise={puissances:[],pythagore:[]};
+
+  historyRows.forEach(row=>{
+    if(byExercise[row.exerciceId]) byExercise[row.exerciceId].push(row);
+  });
+
+  let started=0;
+  let totalAttempts=historyRows.length;
+  let pctSum=0;
+  let pctCount=0;
+
   for(const id of ["puissances","pythagore"]){
-    const d=data[id];
-    if(!d)continue;
-    started++; attempts+=d.tentatives||0;
-    const total=d.totalQuestions||8,best=d.meilleurScore||0,pct=Math.round(best/total*100);
-    sumPct+=pct;count++;
-    document.getElementById(id+"Bar").style.width=pct+"%";
-    document.getElementById(id+"Best").textContent=`${best} / ${total} (${pct}%)`;
-    document.getElementById(id+"Last").textContent=d.dernierScore==null?"—":`${d.dernierScore} / ${total}`;
-    document.getElementById(id+"Attempts").textContent=d.tentatives||0;
-    document.getElementById(id+"Date").textContent=fmt(d.derniereActivite);
-  }
-  document.getElementById("sumStarted").textContent=started;
-  document.getElementById("sumAttempts").textContent=attempts;
-  document.getElementById("sumAvg").textContent=(count?Math.round(sumPct/count):0)+"%";
-}
+    const rows=byExercise[id];
 
+    // If there are completed attempts, completed history is authoritative.
+    if(rows.length>0){
+      started++;
 
-async function recomputeExercise(exerciseId){
-  if(!exerciseId) return;
+      rows.sort((a,b)=>{
+        const ta=a.date?.toMillis ? a.date.toMillis() : 0;
+        const tb=b.date?.toMillis ? b.date.toMillis() : 0;
+        return tb-ta;
+      });
 
-  // Lecture simple de l'historique : aucun index composite Firestore nécessaire.
-  const snap=await getDocs(collection(db,"eleves","abel","historique"));
-  const attempts=[];
+      const total=Number(rows[0].totalQuestions)||8;
+      const best=Math.max(...rows.map(r=>Number(r.score)||0));
+      const last=rows[0];
+      const pct=Math.round(best/total*100);
 
-  snap.forEach(ds=>{
-    const d=ds.data();
-    if(d.exerciceId===exerciseId){
-      attempts.push(d);
+      pctSum+=pct;
+      pctCount++;
+
+      document.getElementById(id+"Bar").style.width=pct+"%";
+      document.getElementById(id+"Best").textContent=`${best} / ${total} (${pct}%)`;
+      document.getElementById(id+"Last").textContent=`${Number(last.score)||0} / ${total}`;
+      document.getElementById(id+"Attempts").textContent=rows.length;
+      document.getElementById(id+"Date").textContent=fmt(last.date);
+    }else{
+      // No completed attempt = display zero, even if an old aggregate document remains.
+      document.getElementById(id+"Bar").style.width="0%";
+      document.getElementById(id+"Best").textContent="—";
+      document.getElementById(id+"Last").textContent="—";
+      document.getElementById(id+"Attempts").textContent="0";
+      document.getElementById(id+"Date").textContent="—";
     }
-  });
-
-  // Tri côté navigateur, pour éviter toute dépendance à un index Firestore.
-  attempts.sort((a,b)=>{
-    const ta=a.date?.toMillis ? a.date.toMillis() : 0;
-    const tb=b.date?.toMillis ? b.date.toMillis() : 0;
-    return tb-ta;
-  });
-
-  const exerciseRef=doc(db,"eleves","abel","exercices",exerciseId);
-
-  if(attempts.length===0){
-    await setDoc(exerciseRef,{
-      nom: exerciseId==="puissances" ? "Puissances" : "Théorème de Pythagore",
-      dernierScore:null,
-      meilleurScore:0,
-      totalQuestions:8,
-      tentatives:0,
-      dernierType:"parent-recompute",
-      progressionQuestions:0,
-      derniereActivite:serverTimestamp(),
-      majPar:"parent"
-    },{merge:true});
-    return;
   }
 
-  const best=Math.max(...attempts.map(d=>Number(d.score)||0));
-  const last=attempts[0];
-
-  await setDoc(exerciseRef,{
-    nom: exerciseId==="puissances" ? "Puissances" : "Théorème de Pythagore",
-    dernierScore:Number(last.score)||0,
-    meilleurScore:best,
-    totalQuestions:Number(last.totalQuestions)||8,
-    tentatives:attempts.length,
-    dernierType:"parent-recompute",
-    progressionQuestions:Number(last.totalQuestions)||8,
-    derniereActivite:last.date || serverTimestamp(),
-    majPar:"parent"
-  },{merge:true});
+  document.getElementById("sumStarted").textContent=started;
+  document.getElementById("sumAttempts").textContent=totalAttempts;
+  document.getElementById("sumAvg").textContent=(pctCount?Math.round(pctSum/pctCount):0)+"%";
 }
 
 function listenData(){
-  let callbacks=0;
-  let readError=false;
+  const qHist=query(
+    collection(db,"eleves","abel","historique"),
+    orderBy("date","desc"),
+    limit(100)
+  );
 
-  for(const id of ["puissances","pythagore"]){
-    unsubs.push(onSnapshot(
-      doc(db,"eleves","abel","exercices",id),
-      snap=>{
-        callbacks++;
-        data[id]=snap.exists()?snap.data():null;
-        render();
-        if(!readError){
-          if(data.puissances || data.pythagore){
-            status.textContent="✓ Firebase connecté — données Abel reçues";
-          }else if(callbacks>=2){
-            status.textContent="✓ Firebase connecté — aucun résultat Abel enregistré";
-          }
-        }
-      },
-      error=>{
-        readError=true;
-        console.error("Erreur lecture Firestore",id,error);
-        status.textContent="⚠ Lecture Firestore impossible : "+(error.code||error.message);
-      }
-    ));
-  }
-
-  const q=query(collection(db,"eleves","abel","historique"),orderBy("date","desc"),limit(20));
   unsubs.push(onSnapshot(
-    q,
+    qHist,
     snap=>{
+      historyRows=[];
       const t=document.getElementById("timeline");
-      if(snap.empty){
-        t.innerHTML='<div class="card">Aucune activité enregistrée pour le moment.</div>';
-        return;
-      }
       t.innerHTML="";
+
       snap.forEach(ds=>{
         const d=ds.data();
+        historyRows.push({...d,_id:ds.id});
+
         const div=document.createElement("div");
         div.className="event";
         div.innerHTML=`<div style="color:#64748b">${fmt(d.date)}</div>
@@ -218,22 +177,30 @@ function listenData(){
           <span style="color:#64748b">Score : ${d.score} / ${d.totalQuestions} — ${d.pourcentage}%</span></div>
           <div style="display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap">
             <span class="badge">Terminé</span>
-            <button class="delete-attempt" data-id="${ds.id}" data-ex="${d.exerciceId||""}">🗑 Supprimer</button>
+            <button class="delete-attempt" data-id="${ds.id}">🗑 Supprimer</button>
           </div>`;
         t.appendChild(div);
       });
 
+      if(snap.empty){
+        t.innerHTML='<div class="card">Aucune activité enregistrée pour le moment.</div>';
+      }
+
+      // Recalculate the whole dashboard directly from real history.
+      render();
+
       t.querySelectorAll(".delete-attempt").forEach(btn=>{
         btn.addEventListener("click",async()=>{
           const id=btn.dataset.id;
-          const exId=btn.dataset.ex;
           if(!confirm("Supprimer définitivement cette tentative ?")) return;
+
           btn.disabled=true;
           btn.textContent="Suppression…";
+
           try{
+            // Only one Firebase operation. The onSnapshot listener then refreshes everything.
             await deleteDoc(doc(db,"eleves","abel","historique",id));
-            await recomputeExercise(exId);
-            status.textContent="✓ Tentative supprimée et statistiques recalculées";
+            status.textContent="✓ Tentative supprimée";
           }catch(error){
             console.error("Suppression impossible",error);
             alert("Suppression impossible : "+(error.code||error.message));
@@ -242,10 +209,16 @@ function listenData(){
           }
         });
       });
+
+      status.textContent = snap.empty
+        ? "✓ Firebase connecté — aucune tentative enregistrée"
+        : "✓ Firebase connecté — données Abel reçues";
     },
     error=>{
-      console.error("Erreur lecture historique",error);
-      document.getElementById("timeline").innerHTML='<div class="card" style="color:#991b1b"><strong>Historique inaccessible :</strong> '+(error.code||error.message)+'</div>';
+      console.error("Lecture historique Firestore impossible",error);
+      status.textContent="⚠ Lecture Firestore impossible : "+(error.code||error.message);
+      document.getElementById("timeline").innerHTML=
+        '<div class="card" style="color:#991b1b"><strong>Lecture de l’historique impossible :</strong> '+(error.code||error.message)+'</div>';
     }
   ));
 }
