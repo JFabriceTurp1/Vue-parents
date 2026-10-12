@@ -14,7 +14,10 @@ button{border:0;border-radius:12px;padding:11px 14px;font-weight:800;cursor:poin
 .card{background:#fff;border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:0 6px 18px rgba(15,23,42,.06)}.value{font-size:2rem;font-weight:950;margin-top:4px}.label{color:var(--muted);font-size:.9rem}
 h2{margin:22px 0 12px}.exercise-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.progress{height:13px;background:#e2e8f0;border-radius:999px;overflow:hidden;margin:12px 0 14px}.progress>div{height:100%;background:linear-gradient(90deg,#2563eb,#16a34a);width:0%}
 .metric{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid #edf1f6}.metric:last-child{border-bottom:0}.metric span:first-child{color:var(--muted)}.timeline{display:grid;gap:10px}.event{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px;display:grid;grid-template-columns:160px 1fr auto;gap:12px;align-items:center}
-.badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#dcfce7;color:#166534;font-size:.85rem;font-weight:850}#authCover{position:fixed;inset:0;background:#eef3f8;z-index:50;display:flex;align-items:center;justify-content:center;padding:20px}.authCard{max-width:430px;background:#fff;border-radius:22px;padding:26px;text-align:center;box-shadow:0 15px 40px rgba(15,23,42,.15)}.authCard button{background:#2563eb;color:#fff;width:100%;margin-top:10px}.hidden{display:none!important}
+.badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#dcfce7;color:#166534;font-size:.85rem;font-weight:850}
+.delete-attempt{background:#fee2e2;color:#991b1b;border:0;border-radius:10px;padding:8px 10px;font-weight:850;cursor:pointer}
+.delete-attempt:hover{background:#fecaca}
+.manage-note{margin:14px 0 0;padding:12px 14px;border-radius:12px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-size:.92rem}#authCover{position:fixed;inset:0;background:#eef3f8;z-index:50;display:flex;align-items:center;justify-content:center;padding:20px}.authCard{max-width:430px;background:#fff;border-radius:22px;padding:26px;text-align:center;box-shadow:0 15px 40px rgba(15,23,42,.15)}.authCard button{background:#2563eb;color:#fff;width:100%;margin-top:10px}.hidden{display:none!important}
 @media(max-width:850px){.summary{grid-template-columns:1fr 1fr}.exercise-grid{grid-template-columns:1fr}.event{grid-template-columns:1fr}}@media(max-width:520px){.summary{grid-template-columns:1fr}}
 </style>
 </head>
@@ -64,13 +67,14 @@ h2{margin:22px 0 12px}.exercise-grid{display:grid;grid-template-columns:1fr 1fr;
 </section>
 
 <h2>Activité récente</h2>
+<div class="manage-note">Tu peux supprimer ici les tentatives de test. Après suppression, les statistiques de l’exercice sont recalculées automatiquement.</div>
 <section id="timeline" class="timeline"><div class="card">Aucune activité enregistrée pour le moment.</div></section>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-auth.js";
-import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
+import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit, deleteDoc, getDocs, where, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
 
 
 const firebaseConfig = {
@@ -111,6 +115,62 @@ function render(){
   document.getElementById("sumStarted").textContent=started;
   document.getElementById("sumAttempts").textContent=attempts;
   document.getElementById("sumAvg").textContent=(count?Math.round(sumPct/count):0)+"%";
+}
+
+
+async function recomputeExercise(exerciseId){
+  if(!exerciseId) return;
+
+  const qHist=query(
+    collection(db,"eleves","abel","historique"),
+    where("exerciceId","==",exerciseId),
+    orderBy("date","desc")
+  );
+  const snap=await getDocs(qHist);
+  const exerciseRef=doc(db,"eleves","abel","exercices",exerciseId);
+
+  if(snap.empty){
+    await setDoc(exerciseRef,{
+      nom: exerciseId==="puissances" ? "Puissances" : "Théorème de Pythagore",
+      dernierScore:null,
+      meilleurScore:0,
+      totalQuestions:8,
+      tentatives:0,
+      dernierType:"parent-recompute",
+      progressionQuestions:0,
+      derniereActivite:serverTimestamp(),
+      majPar:"parent"
+    },{merge:true});
+    return;
+  }
+
+  let best=0;
+  let lastScore=null;
+  let lastDate=null;
+  let first=true;
+
+  snap.forEach(ds=>{
+    const d=ds.data();
+    const score=Number(d.score)||0;
+    if(score>best) best=score;
+    if(first){
+      lastScore=score;
+      lastDate=d.date||null;
+      first=false;
+    }
+  });
+
+  await setDoc(exerciseRef,{
+    nom: exerciseId==="puissances" ? "Puissances" : "Théorème de Pythagore",
+    dernierScore:lastScore,
+    meilleurScore:best,
+    totalQuestions:8,
+    tentatives:snap.size,
+    dernierType:"parent-recompute",
+    progressionQuestions:8,
+    derniereActivite:lastDate||serverTimestamp(),
+    majPar:"parent"
+  },{merge:true});
 }
 
 function listenData(){
@@ -154,8 +214,34 @@ function listenData(){
         const d=ds.data();
         const div=document.createElement("div");
         div.className="event";
-        div.innerHTML=`<div style="color:#64748b">${fmt(d.date)}</div><div><strong>${d.exerciceNom||d.exerciceId}</strong><br><span style="color:#64748b">Score : ${d.score} / ${d.totalQuestions} — ${d.pourcentage}%</span></div><span class="badge">Terminé</span>`;
+        div.innerHTML=`<div style="color:#64748b">${fmt(d.date)}</div>
+          <div><strong>${d.exerciceNom||d.exerciceId}</strong><br>
+          <span style="color:#64748b">Score : ${d.score} / ${d.totalQuestions} — ${d.pourcentage}%</span></div>
+          <div style="display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap">
+            <span class="badge">Terminé</span>
+            <button class="delete-attempt" data-id="${ds.id}" data-ex="${d.exerciceId||""}">🗑 Supprimer</button>
+          </div>`;
         t.appendChild(div);
+      });
+
+      t.querySelectorAll(".delete-attempt").forEach(btn=>{
+        btn.addEventListener("click",async()=>{
+          const id=btn.dataset.id;
+          const exId=btn.dataset.ex;
+          if(!confirm("Supprimer définitivement cette tentative ?")) return;
+          btn.disabled=true;
+          btn.textContent="Suppression…";
+          try{
+            await deleteDoc(doc(db,"eleves","abel","historique",id));
+            await recomputeExercise(exId);
+            status.textContent="✓ Tentative supprimée et statistiques recalculées";
+          }catch(error){
+            console.error("Suppression impossible",error);
+            alert("Suppression impossible : "+(error.code||error.message));
+            btn.disabled=false;
+            btn.textContent="🗑 Supprimer";
+          }
+        });
       });
     },
     error=>{
