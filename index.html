@@ -97,7 +97,7 @@ h2{margin:22px 0 12px}.exercise-grid{display:grid;grid-template-columns:1fr 1fr;
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-auth.js";
 import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit, deleteDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
 
 
@@ -112,7 +112,8 @@ const firebaseConfig = {
 
 
 const PARENT_EMAIL="jfabriceturpin@gmail.com";
-const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
+const app=initializeApp(firebaseConfig,"abel-parent-app"),auth=getAuth(app),db=getFirestore(app);
+await setPersistence(auth,browserLocalPersistence);
 const cover=document.getElementById("authCover"),err=document.getElementById("authError"),status=document.getElementById("status"),logoutBtn=document.getElementById("logoutBtn");
 const unsubs=[];
 
