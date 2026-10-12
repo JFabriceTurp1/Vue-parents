@@ -74,7 +74,7 @@ h2{margin:22px 0 12px}.exercise-grid{display:grid;grid-template-columns:1fr 1fr;
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-auth.js";
-import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit, deleteDoc, getDocs, where, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
+import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit, deleteDoc, getDocs, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
 
 
 const firebaseConfig = {
@@ -121,15 +121,27 @@ function render(){
 async function recomputeExercise(exerciseId){
   if(!exerciseId) return;
 
-  const qHist=query(
-    collection(db,"eleves","abel","historique"),
-    where("exerciceId","==",exerciseId),
-    orderBy("date","desc")
-  );
-  const snap=await getDocs(qHist);
+  // Lecture simple de l'historique : aucun index composite Firestore nécessaire.
+  const snap=await getDocs(collection(db,"eleves","abel","historique"));
+  const attempts=[];
+
+  snap.forEach(ds=>{
+    const d=ds.data();
+    if(d.exerciceId===exerciseId){
+      attempts.push(d);
+    }
+  });
+
+  // Tri côté navigateur, pour éviter toute dépendance à un index Firestore.
+  attempts.sort((a,b)=>{
+    const ta=a.date?.toMillis ? a.date.toMillis() : 0;
+    const tb=b.date?.toMillis ? b.date.toMillis() : 0;
+    return tb-ta;
+  });
+
   const exerciseRef=doc(db,"eleves","abel","exercices",exerciseId);
 
-  if(snap.empty){
+  if(attempts.length===0){
     await setDoc(exerciseRef,{
       nom: exerciseId==="puissances" ? "Puissances" : "Théorème de Pythagore",
       dernierScore:null,
@@ -144,31 +156,18 @@ async function recomputeExercise(exerciseId){
     return;
   }
 
-  let best=0;
-  let lastScore=null;
-  let lastDate=null;
-  let first=true;
-
-  snap.forEach(ds=>{
-    const d=ds.data();
-    const score=Number(d.score)||0;
-    if(score>best) best=score;
-    if(first){
-      lastScore=score;
-      lastDate=d.date||null;
-      first=false;
-    }
-  });
+  const best=Math.max(...attempts.map(d=>Number(d.score)||0));
+  const last=attempts[0];
 
   await setDoc(exerciseRef,{
     nom: exerciseId==="puissances" ? "Puissances" : "Théorème de Pythagore",
-    dernierScore:lastScore,
+    dernierScore:Number(last.score)||0,
     meilleurScore:best,
-    totalQuestions:8,
-    tentatives:snap.size,
+    totalQuestions:Number(last.totalQuestions)||8,
+    tentatives:attempts.length,
     dernierType:"parent-recompute",
-    progressionQuestions:8,
-    derniereActivite:lastDate||serverTimestamp(),
+    progressionQuestions:Number(last.totalQuestions)||8,
+    derniereActivite:last.date || serverTimestamp(),
     majPar:"parent"
   },{merge:true});
 }
