@@ -68,9 +68,9 @@ h2{margin:22px 0 12px}.exercise-grid{display:grid;grid-template-columns:1fr 1fr;
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
-import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-auth.js";
+import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
 
 
 const firebaseConfig = {
@@ -114,21 +114,55 @@ function render(){
 }
 
 function listenData(){
+  let callbacks=0;
+  let readError=false;
+
   for(const id of ["puissances","pythagore"]){
-    unsubs.push(onSnapshot(doc(db,"eleves","abel","exercices",id),snap=>{data[id]=snap.exists()?snap.data():null;render()}));
+    unsubs.push(onSnapshot(
+      doc(db,"eleves","abel","exercices",id),
+      snap=>{
+        callbacks++;
+        data[id]=snap.exists()?snap.data():null;
+        render();
+        if(!readError){
+          if(data.puissances || data.pythagore){
+            status.textContent="✓ Firebase connecté — données Abel reçues";
+          }else if(callbacks>=2){
+            status.textContent="✓ Firebase connecté — aucun résultat Abel enregistré";
+          }
+        }
+      },
+      error=>{
+        readError=true;
+        console.error("Erreur lecture Firestore",id,error);
+        status.textContent="⚠ Lecture Firestore impossible : "+(error.code||error.message);
+      }
+    ));
   }
+
   const q=query(collection(db,"eleves","abel","historique"),orderBy("date","desc"),limit(20));
-  unsubs.push(onSnapshot(q,snap=>{
-    const t=document.getElementById("timeline");
-    if(snap.empty){t.innerHTML='<div class="card">Aucune activité enregistrée pour le moment.</div>';return}
-    t.innerHTML="";
-    snap.forEach(ds=>{
-      const d=ds.data();
-      const div=document.createElement("div");div.className="event";
-      div.innerHTML=`<div style="color:#64748b">${fmt(d.date)}</div><div><strong>${d.exerciceNom||d.exerciceId}</strong><br><span style="color:#64748b">Score : ${d.score} / ${d.totalQuestions} — ${d.pourcentage}%</span></div><span class="badge">Terminé</span>`;
-      t.appendChild(div);
-    });
-  }));
+  unsubs.push(onSnapshot(
+    q,
+    snap=>{
+      const t=document.getElementById("timeline");
+      if(snap.empty){
+        t.innerHTML='<div class="card">Aucune activité enregistrée pour le moment.</div>';
+        return;
+      }
+      t.innerHTML="";
+      snap.forEach(ds=>{
+        const d=ds.data();
+        const div=document.createElement("div");
+        div.className="event";
+        div.innerHTML=`<div style="color:#64748b">${fmt(d.date)}</div><div><strong>${d.exerciceNom||d.exerciceId}</strong><br><span style="color:#64748b">Score : ${d.score} / ${d.totalQuestions} — ${d.pourcentage}%</span></div><span class="badge">Terminé</span>`;
+        t.appendChild(div);
+      });
+    },
+    error=>{
+      console.error("Erreur lecture historique",error);
+      document.getElementById("timeline").innerHTML='<div class="card" style="color:#991b1b"><strong>Historique inaccessible :</strong> '+(error.code||error.message)+'</div>';
+    }
+  ));
 }
 
 document.getElementById("googleLogin").onclick=async()=>{
@@ -145,7 +179,7 @@ onAuthStateChanged(auth,user=>{
     err.textContent="Ce compte Google n’est pas autorisé.";
     signOut(auth);return;
   }
-  cover.classList.add("hidden");logoutBtn.classList.remove("hidden");status.textContent="✓ Firebase connecté — "+user.email;
+  cover.classList.add("hidden");logoutBtn.classList.remove("hidden");status.textContent="✓ Authentification Parent OK — lecture Firestore en cours…";
   listenData();
 });
 </script>
