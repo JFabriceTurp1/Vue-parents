@@ -18,7 +18,7 @@ h2{margin:22px 0 12px}.exercise-grid{display:grid;grid-template-columns:1fr 1fr;
 .delete-attempt{background:#fee2e2;color:#991b1b;border:0;border-radius:10px;padding:8px 10px;font-weight:850;cursor:pointer}
 .delete-attempt:hover{background:#fecaca}
 .manage-note{margin:14px 0 0;padding:12px 14px;border-radius:12px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-size:.92rem}
-.manager{margin:18px 0 22px;background:#fff;border:1px solid #dbe3ef;border-radius:18px;padding:18px}.import-box{margin-top:16px;padding:16px;border:1px dashed #93c5fd;border-radius:14px;background:#eff6ff}.import-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}.import-btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:11px;padding:11px 14px;background:#2563eb;color:#fff;font-weight:850;cursor:pointer}.import-btn.secondary{background:#e2e8f0;color:#0f172a}#importFile{display:none}#importPreview{margin-top:12px;padding:12px;border-radius:12px;background:#fff;border:1px solid #bfdbfe;display:none}.import-ok{color:#166534;font-weight:800}.import-error{color:#991b1b;font-weight:800}.delete-custom{border:0;border-radius:9px;padding:7px 9px;background:#fee2e2;color:#991b1b;font-weight:800;cursor:pointer}
+.manager{margin:18px 0 22px;background:#fff;border:1px solid #dbe3ef;border-radius:18px;padding:18px}.fold{margin:18px 0 22px;background:#fff;border:1px solid #dbe3ef;border-radius:18px;overflow:hidden;box-shadow:0 6px 18px rgba(15,23,42,.04)}.fold>summary{list-style:none;cursor:pointer;padding:16px 18px;font-size:1.2rem;font-weight:900;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff}.fold>summary::-webkit-details-marker{display:none}.fold>summary::after{content:"▾";font-size:1.1rem;transition:transform .2s;color:#64748b}.fold:not([open])>summary::after{transform:rotate(-90deg)}.fold-content{padding:0 18px 18px}.fold-note{color:#64748b;margin:0 0 12px}.published-count{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;padding:0 9px;border-radius:999px;background:#e0e7ff;color:#3730a3;font-size:.85rem;font-weight:900;margin-left:auto}.import-box{margin-top:16px;padding:16px;border:1px dashed #93c5fd;border-radius:14px;background:#eff6ff}.import-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}.import-btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:11px;padding:11px 14px;background:#2563eb;color:#fff;font-weight:850;cursor:pointer}.import-btn.secondary{background:#e2e8f0;color:#0f172a}#importFile{display:none}#importPreview{margin-top:12px;padding:12px;border-radius:12px;background:#fff;border:1px solid #bfdbfe;display:none}.import-ok{color:#166534;font-weight:800}.import-error{color:#991b1b;font-weight:800}.delete-custom{border:0;border-radius:9px;padding:7px 9px;background:#fee2e2;color:#991b1b;font-weight:800;cursor:pointer}
 .manager h2{margin:0 0 6px}
 .manager-grid{display:grid;gap:10px;margin-top:14px}
 .manager-row{display:grid;grid-template-columns:minmax(180px,1fr) 120px 110px 90px;gap:10px;align-items:center;padding:12px;border:1px solid #e2e8f0;border-radius:12px}
@@ -59,34 +59,29 @@ h2{margin:22px 0 12px}.exercise-grid{display:grid;grid-template-columns:1fr 1fr;
 </header>
 
 <section class="summary">
-  <div class="card"><div class="label">Exercices disponibles</div><div class="value">2</div></div>
+  <div class="card"><div class="label">Exercices publiés</div><div id="sumAvailable" class="value">0</div></div>
   <div class="card"><div class="label">Exercices commencés</div><div id="sumStarted" class="value">0</div></div>
   <div class="card"><div class="label">Tentatives terminées</div><div id="sumAttempts" class="value">0</div></div>
   <div class="card"><div class="label">Meilleure moyenne</div><div id="sumAvg" class="value">0%</div></div>
 </section>
 
-<h2>Progression par exercice</h2>
-<section class="exercise-grid">
-  <article class="card">
-    <h3>⚡ Puissances</h3><div class="progress"><div id="puissancesBar"></div></div>
-    <div class="metric"><span>Meilleur score</span><strong id="puissancesBest">—</strong></div>
-    <div class="metric"><span>Dernier score</span><strong id="puissancesLast">—</strong></div>
-    <div class="metric"><span>Tentatives</span><strong id="puissancesAttempts">0</strong></div>
-    <div class="metric"><span>Dernière activité</span><strong id="puissancesDate">—</strong></div>
-  </article>
-  <article class="card">
-    <h3>📐 Théorème de Pythagore</h3><div class="progress"><div id="pythagoreBar"></div></div>
-    <div class="metric"><span>Meilleur score</span><strong id="pythagoreBest">—</strong></div>
-    <div class="metric"><span>Dernier score</span><strong id="pythagoreLast">—</strong></div>
-    <div class="metric"><span>Tentatives</span><strong id="pythagoreAttempts">0</strong></div>
-    <div class="metric"><span>Dernière activité</span><strong id="pythagoreDate">—</strong></div>
-  </article>
-</section>
 
+<details class="fold">
+  <summary>
+    <span>📈 Progression par exercice</span>
+    <span id="publishedCountBadge" class="published-count">0</span>
+  </summary>
+  <div class="fold-content">
+    <p class="fold-note">Cette zone affiche automatiquement tous les exercices actuellement publiés sur le portail d’Abel.</p>
+    <section id="progressionGrid" class="exercise-grid"></section>
+  </div>
+</details>
 
-<section class="manager">
-  <h2>Pilotage des exercices</h2>
-  <div style="color:#64748b">Choisis ce qu’Abel voit dans son portail. Le compteur « ouvertures » augmente dès qu’il ouvre un chapitre, même s’il ne fait pas le test.</div>
+<details class="fold">
+  <summary><span>🎛️ Pilotage des exercices</span></summary>
+  <div class="fold-content">
+
+  <p class="fold-note">Choisis ce qu’Abel voit dans son portail. Le compteur « ouvertures » augmente dès qu’il ouvre un chapitre, même s’il ne fait pas le test.</p>
 
   <div class="import-box">
     <strong>📥 Importer une activité JSON</strong>
@@ -100,7 +95,8 @@ h2{margin:22px 0 12px}.exercise-grid{display:grid;grid-template-columns:1fr 1fr;
   </div>
 
   <div id="managerGrid" class="manager-grid"></div>
-</section>
+  </div>
+</details>
 
 <h2>Activité récente</h2>
 <div class="manage-note">Tu peux supprimer ici les tentatives de test. Après suppression, les statistiques de l’exercice sont recalculées automatiquement.</div>
@@ -196,18 +192,20 @@ const EXERCISES=[
 let exerciseConfig={puissances:true,pythagore:true};
 let usageData={};
 
-function renderManager(){
-  const grid=document.getElementById("managerGrid");
-  if(!grid) return;
-  grid.innerHTML="";
-
+function getAllExercises(){
   const merged=[];
   const seen=new Set();
 
   EXERCISES.forEach(base=>{
     const custom=customActivities[base.id];
     if(custom){
-      merged.push({id:custom.id,name:custom.title,emoji:custom.emoji||"🧠",available:true,custom:true});
+      merged.push({
+        id:custom.id,
+        name:custom.title,
+        emoji:custom.emoji||"🧠",
+        available:true,
+        custom:true
+      });
     }else{
       merged.push(base);
     }
@@ -216,11 +214,31 @@ function renderManager(){
 
   Object.values(customActivities).forEach(a=>{
     if(!seen.has(a.id)){
-      merged.push({id:a.id,name:a.title,emoji:a.emoji||"🧠",available:true,custom:true});
+      merged.push({
+        id:a.id,
+        name:a.title,
+        emoji:a.emoji||"🧠",
+        available:true,
+        custom:true
+      });
     }
   });
 
-  merged.forEach(ex=>{
+  return merged;
+}
+
+function getPublishedExercises(){
+  return getAllExercises().filter(ex=>ex.available && exerciseConfig[ex.id]===true);
+}
+
+
+
+function renderManager(){
+  const grid=document.getElementById("managerGrid");
+  if(!grid) return;
+  grid.innerHTML="";
+
+  getAllExercises().forEach(ex=>{
     const row=document.createElement("div");
     row.className="manager-row"+(ex.available?"":" future");
     const openings=Number(usageData[ex.id]?.ouvertures)||0;
@@ -353,6 +371,7 @@ function listenExerciseManagement(){
         if(d?.activity?.id) customActivities[d.activity.id]=d.activity;
       });
       renderManager();
+      render();
     },
     err=>console.error("Lecture catalogue impossible",err)
   ));
@@ -362,6 +381,7 @@ function listenExerciseManagement(){
     snap=>{
       exerciseConfig=Object.assign({puissances:true,pythagore:true},snap.exists()?snap.data():{});
       renderManager();
+      render();
     },
     err=>console.error("Lecture configuration impossible",err)
   ));
@@ -375,6 +395,7 @@ function listenExerciseManagement(){
       snap=>{
         usageData[id]=snap.exists()?snap.data():{};
         renderManager();
+        render();
       },
       err=>console.warn("Lecture usage impossible",id,err)
     ));
@@ -391,57 +412,76 @@ function listenExerciseManagement(){
 let historyRows=[];
 
 function render(){
-  const byExercise={puissances:[],pythagore:[]};
+  const published=getPublishedExercises();
+  const grid=document.getElementById("progressionGrid");
+  if(grid) grid.innerHTML="";
 
-  historyRows.forEach(row=>{
-    if(byExercise[row.exerciceId]) byExercise[row.exerciceId].push(row);
-  });
+  document.getElementById("sumAvailable").textContent=published.length;
+  document.getElementById("publishedCountBadge").textContent=published.length;
 
   let started=0;
-  let totalAttempts=historyRows.length;
+  let totalAttempts=0;
   let pctSum=0;
   let pctCount=0;
 
-  for(const id of ["puissances","pythagore"]){
-    const rows=byExercise[id];
-
-    // If there are completed attempts, completed history is authoritative.
-    if(rows.length>0){
-      started++;
-
-      rows.sort((a,b)=>{
+  published.forEach(ex=>{
+    const rows=historyRows
+      .filter(r=>r.exerciceId===ex.id)
+      .slice()
+      .sort((a,b)=>{
         const ta=a.date?.toMillis ? a.date.toMillis() : 0;
         const tb=b.date?.toMillis ? b.date.toMillis() : 0;
         return tb-ta;
       });
 
+    const openings=Number(usageData[ex.id]?.ouvertures)||0;
+    totalAttempts+=rows.length;
+
+    let bestText="—";
+    let lastText="—";
+    let dateText="—";
+    let pct=0;
+
+    if(rows.length){
+      started++;
       const total=Number(rows[0].totalQuestions)||8;
       const best=Math.max(...rows.map(r=>Number(r.score)||0));
       const last=rows[0];
-      const pct=Math.round(best/total*100);
+      pct=Math.round(best/total*100);
+
+      bestText=`${best} / ${total} (${pct}%)`;
+      lastText=`${Number(last.score)||0} / ${total}`;
+      dateText=fmt(last.date);
 
       pctSum+=pct;
       pctCount++;
-
-      document.getElementById(id+"Bar").style.width=pct+"%";
-      document.getElementById(id+"Best").textContent=`${best} / ${total} (${pct}%)`;
-      document.getElementById(id+"Last").textContent=`${Number(last.score)||0} / ${total}`;
-      document.getElementById(id+"Attempts").textContent=rows.length;
-      document.getElementById(id+"Date").textContent=fmt(last.date);
-    }else{
-      // No completed attempt = display zero, even if an old aggregate document remains.
-      document.getElementById(id+"Bar").style.width="0%";
-      document.getElementById(id+"Best").textContent="—";
-      document.getElementById(id+"Last").textContent="—";
-      document.getElementById(id+"Attempts").textContent="0";
-      document.getElementById(id+"Date").textContent="—";
     }
+
+    if(grid){
+      const card=document.createElement("article");
+      card.className="card";
+      card.innerHTML=`
+        <h3>${ex.emoji||"🧠"} ${ex.name}</h3>
+        <div class="progress"><div style="width:${pct}%"></div></div>
+        <div class="metric"><span>Ouvertures du chapitre</span><strong>${openings}</strong></div>
+        <div class="metric"><span>Meilleur score</span><strong>${bestText}</strong></div>
+        <div class="metric"><span>Dernier score</span><strong>${lastText}</strong></div>
+        <div class="metric"><span>Tests terminés</span><strong>${rows.length}</strong></div>
+        <div class="metric"><span>Dernière activité</span><strong>${dateText}</strong></div>
+      `;
+      grid.appendChild(card);
+    }
+  });
+
+  if(grid && published.length===0){
+    grid.innerHTML='<div class="card">Aucun exercice n’est actuellement publié sur le portail d’Abel.</div>';
   }
 
   document.getElementById("sumStarted").textContent=started;
   document.getElementById("sumAttempts").textContent=totalAttempts;
   document.getElementById("sumAvg").textContent=(pctCount?Math.round(pctSum/pctCount):0)+"%";
 }
+
 
 function listenData(){
   const qHist=query(
@@ -479,6 +519,7 @@ function listenData(){
 
       // Recalculate the whole dashboard directly from real history.
       render();
+      renderManager();
 
       t.querySelectorAll(".delete-attempt").forEach(btn=>{
         btn.addEventListener("click",async()=>{
