@@ -3,11 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Suivi Parent — Abel</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Suivi Parent — Abel — V11</title>
 <style>
 :root{--bg:#f4f7fb;--card:#fff;--text:#1f2937;--muted:#64748b;--blue:#2563eb;--green:#16a34a;--border:#dbe3ef}
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(135deg,#eef3f8,#f8fafc);color:var(--text)}
-.app{max-width:1180px;margin:auto;padding:18px} header{background:linear-gradient(135deg,#0f172a,#1e3a8a 55%,#2563eb);color:#fff;border-radius:22px;padding:24px;box-shadow:0 12px 30px rgba(15,23,42,.18)}
+.app{max-width:1180px;margin:auto;padding:18px}.version-badge{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;background:#fef3c7;color:#92400e;font-size:.82rem;font-weight:900;margin-top:10px} header{background:linear-gradient(135deg,#0f172a,#1e3a8a 55%,#2563eb);color:#fff;border-radius:22px;padding:24px;box-shadow:0 12px 30px rgba(15,23,42,.18)}
 .top{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}h1{margin:0;font-size:clamp(28px,4vw,42px)}.sub{margin:5px 0 0;opacity:.9}
 button{border:0;border-radius:12px;padding:11px 14px;font-weight:800;cursor:pointer}.login{background:#fff;color:#1d4ed8}.logout{background:#e2e8f0;color:#0f172a}
 #status{margin-top:12px;font-size:.9rem;opacity:.9}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:18px}
@@ -18,7 +21,20 @@ h2{margin:22px 0 12px}.exercise-grid{display:grid;grid-template-columns:1fr 1fr;
 .delete-attempt{background:#fee2e2;color:#991b1b;border:0;border-radius:10px;padding:8px 10px;font-weight:850;cursor:pointer}
 .delete-attempt:hover{background:#fecaca}
 .manage-note{margin:14px 0 0;padding:12px 14px;border-radius:12px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-size:.92rem}
-.manager{margin:18px 0 22px;background:#fff;border:1px solid #dbe3ef;border-radius:18px;padding:18px}.fold{margin:18px 0 22px;background:#fff;border:1px solid #dbe3ef;border-radius:18px;overflow:hidden;box-shadow:0 6px 18px rgba(15,23,42,.04)}.fold>summary{list-style:none;cursor:pointer;padding:16px 18px;font-size:1.2rem;font-weight:900;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff}.fold>summary::-webkit-details-marker{display:none}.fold>summary::after{content:"▾";font-size:1.1rem;transition:transform .2s;color:#64748b}.fold:not([open])>summary::after{transform:rotate(-90deg)}.fold-content{padding:0 18px 18px}.fold-note{color:#64748b;margin:0 0 12px}.published-count{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;padding:0 9px;border-radius:999px;background:#e0e7ff;color:#3730a3;font-size:.85rem;font-weight:900;margin-left:auto}.import-box{margin-top:16px;padding:16px;border:1px dashed #93c5fd;border-radius:14px;background:#eff6ff}.import-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}.import-btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:11px;padding:11px 14px;background:#2563eb;color:#fff;font-weight:850;cursor:pointer}.import-btn.secondary{background:#e2e8f0;color:#0f172a}#importFile{display:none}#importPreview{margin-top:12px;padding:12px;border-radius:12px;background:#fff;border:1px solid #bfdbfe;display:none}.import-ok{color:#166534;font-weight:800}.import-error{color:#991b1b;font-weight:800}.delete-custom{border:0;border-radius:9px;padding:7px 9px;background:#fee2e2;color:#991b1b;font-weight:800;cursor:pointer}
+.manager{margin:18px 0 22px;background:#fff;border:1px solid #dbe3ef;border-radius:18px;padding:18px}.fold{margin:18px 0 22px;background:#fff;border:1px solid #dbe3ef;border-radius:18px;overflow:hidden;box-shadow:0 6px 18px rgba(15,23,42,.04)}.fold>summary{list-style:none;cursor:pointer;padding:17px 18px;font-size:1.2rem;font-weight:900;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#eaf2ff;border-bottom:1px solid #dbeafe}.fold>summary::-webkit-details-marker{display:none}.fold>summary::after{content:"▾";font-size:1.1rem;transition:transform .2s;color:#64748b}.fold:not([open])>summary::after{transform:rotate(-90deg)}.fold-content{padding:0 18px 18px}.fold-note{color:#64748b;margin:0 0 12px}
+.reward-settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:14px 0}
+.reward-field{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px}
+.reward-field label{display:block;font-size:.82rem;color:#64748b;font-weight:800;margin-bottom:6px}
+.reward-field input[type="number"]{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:9px;font-size:1rem}
+.reward-save{border:0;border-radius:11px;padding:11px 15px;background:#2563eb;color:#fff;font-weight:900;cursor:pointer}
+.reward-admin-grid{display:grid;gap:10px;margin-top:14px}
+.reward-admin-row{display:grid;grid-template-columns:minmax(180px,1fr) 125px 125px 160px;gap:10px;align-items:center;padding:12px;border:1px solid #e2e8f0;border-radius:12px}
+.reward-admin-row button{border:0;border-radius:9px;padding:8px 9px;font-weight:800;cursor:pointer}
+.reward-reset{background:#e2e8f0;color:#0f172a}
+.reward-paid{background:#dcfce7;color:#166534}
+.reward-total{font-size:1.8rem;font-weight:950;color:#92400e}
+@media(max-width:760px){.reward-admin-row{grid-template-columns:1fr 1fr}.reward-admin-row>div:first-child{grid-column:1/-1}}
+.published-count{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;padding:0 9px;border-radius:999px;background:#e0e7ff;color:#3730a3;font-size:.85rem;font-weight:900;margin-left:auto}.import-box{margin-top:16px;padding:16px;border:1px dashed #93c5fd;border-radius:14px;background:#eff6ff}.import-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}.import-btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:11px;padding:11px 14px;background:#2563eb;color:#fff;font-weight:850;cursor:pointer}.import-btn.secondary{background:#e2e8f0;color:#0f172a}#importFile{display:none}#importPreview{margin-top:12px;padding:12px;border-radius:12px;background:#fff;border:1px solid #bfdbfe;display:none}.import-ok{color:#166534;font-weight:800}.import-error{color:#991b1b;font-weight:800}.delete-custom{border:0;border-radius:9px;padding:7px 9px;background:#fee2e2;color:#991b1b;font-weight:800;cursor:pointer}
 .manager h2{margin:0 0 6px}
 .manager-grid{display:grid;gap:10px;margin-top:14px}
 .manager-row{display:grid;grid-template-columns:minmax(180px,1fr) 120px 110px 90px;gap:10px;align-items:center;padding:12px;border:1px solid #e2e8f0;border-radius:12px}
@@ -52,7 +68,8 @@ h2{margin:22px 0 12px}.exercise-grid{display:grid;grid-template-columns:1fr 1fr;
 <div class="app">
 <header>
   <div class="top">
-    <div><h1>👨‍👦 Suivi Parent — Abel</h1><p class="sub">Progression des exercices de mathématiques</p></div>
+    <div><h1>👨‍👦 Suivi Parent — Abel</h1>
+<div class="version-badge">PARENT V11 — RÉCOMPENSES + VUE REPLIABLE</div><p class="sub">Progression des exercices de mathématiques</p></div>
     <button id="logoutBtn" class="login hidden">Déconnexion</button>
   </div>
   <div id="status">Connexion à Firebase…</div>
@@ -66,9 +83,13 @@ h2{margin:22px 0 12px}.exercise-grid{display:grid;grid-template-columns:1fr 1fr;
 </section>
 
 
+
+<div style="margin:14px 0;padding:10px 14px;border-radius:12px;background:#ecfdf5;border:1px solid #bbf7d0;color:#166534;font-weight:800">
+✅ Nouvelle interface chargée : les deux zones ci-dessous doivent être repliables.
+</div>
 <details class="fold">
   <summary>
-    <span>📈 Progression par exercice</span>
+    <span>📈 Progression par exercice <small style="font-weight:650;color:#64748b">— cliquer pour ouvrir</small></span>
     <span id="publishedCountBadge" class="published-count">0</span>
   </summary>
   <div class="fold-content">
@@ -78,7 +99,7 @@ h2{margin:22px 0 12px}.exercise-grid{display:grid;grid-template-columns:1fr 1fr;
 </details>
 
 <details class="fold">
-  <summary><span>🎛️ Pilotage des exercices</span></summary>
+  <summary><span>🎛️ Pilotage des exercices <small style="font-weight:650;color:#64748b">— cliquer pour ouvrir</small></span></summary>
   <div class="fold-content">
 
   <p class="fold-note">Choisis ce qu’Abel voit dans son portail. Le compteur « ouvertures » augmente dès qu’il ouvre un chapitre, même s’il ne fait pas le test.</p>
@@ -95,6 +116,42 @@ h2{margin:22px 0 12px}.exercise-grid{display:grid;grid-template-columns:1fr 1fr;
   </div>
 
   <div id="managerGrid" class="manager-grid"></div>
+  </div>
+</details>
+
+
+<details class="fold">
+  <summary>
+    <span>🏆 Récompenses d’Abel <small style="font-weight:650;color:#64748b">— règles et cagnotte</small></span>
+    <span id="rewardDueBadge" class="published-count">0,00 €</span>
+  </summary>
+  <div class="fold-content">
+    <p class="fold-note">Cette partie est uniquement visible sur le portail Parent. Les règles enregistrées sont appliquées automatiquement sur le portail d’Abel.</p>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;background:#fff7ed;border:1px solid #fed7aa;border-radius:14px;padding:14px">
+      <div>
+        <strong>Cagnotte actuellement gagnée et non versée</strong>
+        <div id="rewardDueTotal" class="reward-total">0,00 €</div>
+      </div>
+      <label style="display:flex;gap:8px;align-items:center;font-weight:850">
+        <input id="rewardEnabled" type="checkbox" checked> Activer le système de récompenses
+      </label>
+    </div>
+
+    <div class="reward-settings">
+      <div class="reward-field"><label>Montant par chapitre (€)</label><input id="rewardAmount" type="number" min="0" max="50" step="0.10" value="1"></div>
+      <div class="reward-field"><label>Consultations nécessaires</label><input id="rewardOpenings" type="number" min="1" max="100" step="1" value="10"></div>
+      <div class="reward-field"><label>Tests réussis nécessaires</label><input id="rewardTests" type="number" min="1" max="20" step="1" value="3"></div>
+      <div class="reward-field"><label>Note minimale (%)</label><input id="rewardScore" type="number" min="0" max="100" step="1" value="80"></div>
+      <div class="reward-field"><label>Délai maximum (heures)</label><input id="rewardHours" type="number" min="1" max="720" step="1" value="72"></div>
+      <div class="reward-field"><label>Temps minimum dans le chapitre (s)</label><input id="rewardReadSeconds" type="number" min="5" max="3600" step="5" value="60"></div>
+      <div class="reward-field"><label>Délai entre 2 consultations comptées (min)</label><input id="rewardCooldown" type="number" min="0" max="1440" step="5" value="30"></div>
+    </div>
+
+    <button id="saveRewardRules" class="reward-save">💾 Enregistrer les règles</button>
+
+    <h3 style="margin-top:22px">Défis par chapitre</h3>
+    <div id="rewardAdminGrid" class="reward-admin-grid"></div>
   </div>
 </details>
 
@@ -372,6 +429,7 @@ function listenExerciseManagement(){
       });
       renderManager();
       render();
+      renderRewardAdmin();
     },
     err=>console.error("Lecture catalogue impossible",err)
   ));
@@ -382,6 +440,7 @@ function listenExerciseManagement(){
       exerciseConfig=Object.assign({puissances:true,pythagore:true},snap.exists()?snap.data():{});
       renderManager();
       render();
+      renderRewardAdmin();
     },
     err=>console.error("Lecture configuration impossible",err)
   ));
@@ -408,6 +467,203 @@ function listenExerciseManagement(){
     snap=>snap.forEach(ds=>watchUsage(ds.id))
   ));
 }
+
+
+const DEFAULT_REWARD_CONFIG={
+  enabled:true,
+  amount:1,
+  requiredOpenings:10,
+  requiredSuccessfulTests:3,
+  minScorePct:80,
+  windowHours:72,
+  minReadSeconds:60,
+  cooldownMinutes:30,
+  exerciseEnabled:{}
+};
+let rewardConfig={...DEFAULT_REWARD_CONFIG};
+let rewardProgress={};
+
+function rewardMoney(v){
+  return new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR"}).format(Number(v)||0);
+}
+
+function rewardTsMillis(ts){
+  if(!ts) return null;
+  if(typeof ts.toMillis==="function") return ts.toMillis();
+  if(typeof ts.seconds==="number") return ts.seconds*1000;
+  return null;
+}
+
+function rewardRemaining(p){
+  const start=rewardTsMillis(p?.cycleStartedAt);
+  if(!start) return "Pas commencé";
+  const ms=start+(Number(rewardConfig.windowHours)||72)*3600000-Date.now();
+  if(ms<=0) return "Délai dépassé";
+  const h=Math.floor(ms/3600000);
+  const m=Math.floor((ms%3600000)/60000);
+  return `${h} h ${String(m).padStart(2,"0")}`;
+}
+
+function fillRewardSettings(){
+  const c={...DEFAULT_REWARD_CONFIG,...rewardConfig};
+  document.getElementById("rewardEnabled").checked=c.enabled!==false;
+  document.getElementById("rewardAmount").value=c.amount;
+  document.getElementById("rewardOpenings").value=c.requiredOpenings;
+  document.getElementById("rewardTests").value=c.requiredSuccessfulTests;
+  document.getElementById("rewardScore").value=c.minScorePct;
+  document.getElementById("rewardHours").value=c.windowHours;
+  document.getElementById("rewardReadSeconds").value=c.minReadSeconds;
+  document.getElementById("rewardCooldown").value=c.cooldownMinutes;
+}
+
+function renderRewardAdmin(){
+  const grid=document.getElementById("rewardAdminGrid");
+  if(!grid) return;
+  grid.innerHTML="";
+
+  const published=getPublishedExercises();
+  const due=Object.values(rewardProgress)
+    .filter(p=>p?.earned===true && p?.paid!==true)
+    .reduce((s,p)=>s+(Number(p.amountEarned)||0),0);
+
+  document.getElementById("rewardDueTotal").textContent=rewardMoney(due);
+  document.getElementById("rewardDueBadge").textContent=rewardMoney(due);
+
+  published.forEach(ex=>{
+    const p=rewardProgress[ex.id]||{};
+    const exMap=rewardConfig.exerciseEnabled||{};
+    const active=(typeof exMap[ex.id]==="boolean") ? exMap[ex.id] : true;
+    const opens=Number(p.validOpenings)||0;
+    const tests=Number(p.successfulTests)||0;
+
+    const row=document.createElement("div");
+    row.className="reward-admin-row";
+
+    let state="En cours";
+    if(!p.cycleStartedAt) state="Pas commencé";
+    if(p.earned) state=p.paid ? "Gagné • versé" : "Gagné • à verser";
+    else if(p.cycleStartedAt) state=rewardRemaining(p);
+
+    row.innerHTML=`
+      <div>
+        <strong>${ex.emoji||"🧠"} ${ex.name}</strong>
+        <div class="manager-meta">${opens}/${rewardConfig.requiredOpenings||10} consultations • ${tests}/${rewardConfig.requiredSuccessfulTests||3} tests réussis</div>
+        <div class="manager-meta">${state}</div>
+      </div>
+      <label style="display:flex;align-items:center;gap:7px;font-weight:800">
+        <input type="checkbox" data-reward-active="${ex.id}" ${active?"checked":""}> Défi actif
+      </label>
+      <button class="reward-reset" data-reward-reset="${ex.id}">↺ Réinitialiser</button>
+      <div>
+        ${p.earned && !p.paid ? `<button class="reward-paid" data-reward-paid="${ex.id}">💶 Marquer versé</button>` :
+          (p.earned && p.paid ? `<strong style="color:#166534">✓ Versé</strong>` : "")}
+      </div>
+    `;
+    grid.appendChild(row);
+  });
+
+  if(!published.length){
+    grid.innerHTML='<div class="card">Aucun exercice publié : aucun défi à administrer.</div>';
+  }
+
+  grid.querySelectorAll("[data-reward-active]").forEach(box=>{
+    box.addEventListener("change",async()=>{
+      const id=box.dataset.rewardActive;
+      const newMap={...(rewardConfig.exerciseEnabled||{}),[id]:box.checked};
+      try{
+        await setDoc(doc(db,"eleves","abel","config","recompenses"),{
+          exerciseEnabled:newMap,
+          updatedAt:serverTimestamp()
+        },{merge:true});
+      }catch(err){
+        box.checked=!box.checked;
+        alert("Impossible de modifier ce défi : "+(err.code||err.message));
+      }
+    });
+  });
+
+  grid.querySelectorAll("[data-reward-reset]").forEach(btn=>{
+    btn.addEventListener("click",async()=>{
+      const id=btn.dataset.rewardReset;
+      if(!confirm("Réinitialiser le défi de cet exercice ?")) return;
+      try{
+        await setDoc(doc(db,"eleves","abel","recompenses",id),{
+          exerciseId:id,
+          cycleStartedAt:null,
+          validOpenings:0,
+          successfulTests:0,
+          totalTests:0,
+          lastValidOpenAt:null,
+          earned:false,
+          earnedAt:null,
+          amountEarned:0,
+          paid:false,
+          updatedAt:serverTimestamp()
+        },{merge:false});
+      }catch(err){
+        alert("Réinitialisation impossible : "+(err.code||err.message));
+      }
+    });
+  });
+
+  grid.querySelectorAll("[data-reward-paid]").forEach(btn=>{
+    btn.addEventListener("click",async()=>{
+      const id=btn.dataset.rewardPaid;
+      try{
+        await setDoc(doc(db,"eleves","abel","recompenses",id),{
+          paid:true,
+          updatedAt:serverTimestamp()
+        },{merge:true});
+      }catch(err){
+        alert("Impossible de marquer la récompense comme versée : "+(err.code||err.message));
+      }
+    });
+  });
+}
+
+document.getElementById("saveRewardRules").addEventListener("click",async()=>{
+  const cfg={
+    enabled:document.getElementById("rewardEnabled").checked,
+    amount:Math.max(0,Number(document.getElementById("rewardAmount").value)||0),
+    requiredOpenings:Math.max(1,Math.round(Number(document.getElementById("rewardOpenings").value)||10)),
+    requiredSuccessfulTests:Math.max(1,Math.round(Number(document.getElementById("rewardTests").value)||3)),
+    minScorePct:Math.max(0,Math.min(100,Number(document.getElementById("rewardScore").value)||80)),
+    windowHours:Math.max(1,Number(document.getElementById("rewardHours").value)||72),
+    minReadSeconds:Math.max(5,Number(document.getElementById("rewardReadSeconds").value)||60),
+    cooldownMinutes:Math.max(0,Number(document.getElementById("rewardCooldown").value)||0),
+    exerciseEnabled:{...(rewardConfig.exerciseEnabled||{})},
+    updatedAt:serverTimestamp()
+  };
+  try{
+    await setDoc(doc(db,"eleves","abel","config","recompenses"),cfg,{merge:true});
+    status.textContent="✓ Règles de récompense enregistrées";
+  }catch(err){
+    alert("Enregistrement impossible : "+(err.code||err.message));
+  }
+});
+
+function listenRewards(){
+  unsubs.push(onSnapshot(
+    doc(db,"eleves","abel","config","recompenses"),
+    snap=>{
+      rewardConfig=Object.assign({},DEFAULT_REWARD_CONFIG,snap.exists()?snap.data():{});
+      fillRewardSettings();
+      renderRewardAdmin();
+    },
+    err=>console.error("Lecture règles récompenses impossible",err)
+  ));
+
+  unsubs.push(onSnapshot(
+    collection(db,"eleves","abel","recompenses"),
+    snap=>{
+      rewardProgress={};
+      snap.forEach(ds=>rewardProgress[ds.id]=ds.data());
+      renderRewardAdmin();
+    },
+    err=>console.error("Lecture récompenses impossible",err)
+  ));
+}
+
 
 let historyRows=[];
 
@@ -572,6 +828,7 @@ onAuthStateChanged(auth,user=>{
   cover.classList.add("hidden");logoutBtn.classList.remove("hidden");status.textContent="✓ Authentification Parent OK — lecture Firestore en cours…";
   listenData();
     listenExerciseManagement();
+    listenRewards();
 });
 </script>
 </body>
