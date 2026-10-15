@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Suivi Parent — Abel — V13</title>
+<title>Suivi Parent — Abel — V14</title>
 <style>
 :root{--bg:#f4f7fb;--card:#fff;--text:#1f2937;--muted:#64748b;--blue:#2563eb;--green:#16a34a;--border:#dbe3ef}
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(135deg,#eef3f8,#f8fafc);color:var(--text)}
@@ -28,7 +28,7 @@ h2{margin:22px 0 12px}.exercise-grid{display:grid;grid-template-columns:1fr 1fr;
 .reward-field input[type="number"]{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:9px;font-size:1rem}
 .reward-save{border:0;border-radius:11px;padding:11px 15px;background:#2563eb;color:#fff;font-weight:900;cursor:pointer}
 .reward-admin-grid{display:grid;gap:10px;margin-top:14px}
-.reward-admin-row{display:grid;grid-template-columns:minmax(180px,1fr) 125px 125px 160px;gap:10px;align-items:center;padding:12px;border:1px solid #e2e8f0;border-radius:12px}
+.reward-admin-row{display:grid;grid-template-columns:minmax(220px,1fr) 135px 190px 125px 160px;gap:10px;align-items:center;padding:12px;border:1px solid #e2e8f0;border-radius:12px}.reward-test-editor{display:flex;gap:6px;align-items:center}.reward-test-editor input{width:72px;padding:8px;border:1px solid #cbd5e1;border-radius:8px;font-weight:850}.reward-test-editor button{background:#dbeafe;color:#1d4ed8}
 .reward-admin-row button{border:0;border-radius:9px;padding:8px 9px;font-weight:800;cursor:pointer}
 .reward-reset{background:#e2e8f0;color:#0f172a}
 .reward-paid{background:#dcfce7;color:#166534}
@@ -69,7 +69,7 @@ h2{margin:22px 0 12px}.exercise-grid{display:grid;grid-template-columns:1fr 1fr;
 <header>
   <div class="top">
     <div><h1>👨‍👦 Suivi Parent — Abel</h1>
-<div class="version-badge">PARENT V13 — SUPPRESSION SYNCHRONISÉE</div><p class="sub">Progression des exercices de mathématiques</p></div>
+<div class="version-badge">PARENT V14 — AJUSTEMENT TESTS RÉUSSIS</div><p class="sub">Progression des exercices de mathématiques</p></div>
     <button id="logoutBtn" class="login hidden">Déconnexion</button>
   </div>
   <div id="status">Connexion à Firebase…</div>
@@ -160,6 +160,9 @@ h2{margin:22px 0 12px}.exercise-grid{display:grid;grid-template-columns:1fr 1fr;
     <button id="saveRewardRules" class="reward-save">💾 Enregistrer les règles</button>
 
     <h3 style="margin-top:22px">Défis par chapitre</h3>
+    <div style="margin:-4px 0 12px;padding:10px 12px;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0;color:#475569;font-size:.92rem">
+      Tu peux corriger manuellement le nombre de <strong>tests réussis</strong> d’un chapitre. La modification est synchronisée immédiatement sur le portail d’Abel.
+    </div>
     <div id="rewardAdminGrid" class="reward-admin-grid"></div>
   </div>
 </details>
@@ -568,6 +571,10 @@ function renderRewardAdmin(){
       <label style="display:flex;align-items:center;gap:7px;font-weight:800">
         <input type="checkbox" data-reward-active="${ex.id}" ${active?"checked":""}> Défi actif
       </label>
+      <div class="reward-test-editor">
+        <input type="number" min="0" max="99" step="1" value="${tests}" data-successful-tests="${ex.id}" aria-label="Nombre de tests réussis">
+        <button data-save-successful="${ex.id}">✓ Ajuster</button>
+      </div>
       <button class="reward-reset" data-reward-reset="${ex.id}">↺ Réinitialiser</button>
       <div>
         ${p.earned && !p.paid ? `<button class="reward-paid" data-reward-paid="${ex.id}">💶 Marquer versé</button>` :
@@ -593,6 +600,54 @@ function renderRewardAdmin(){
       }catch(err){
         box.checked=!box.checked;
         alert("Impossible de modifier ce défi : "+(err.code||err.message));
+      }
+    });
+  });
+
+
+  grid.querySelectorAll("[data-save-successful]").forEach(btn=>{
+    btn.addEventListener("click",async()=>{
+      const id=btn.dataset.saveSuccessful;
+      const input=grid.querySelector(`[data-successful-tests="${id}"]`);
+      const value=Math.max(0,Math.round(Number(input?.value)||0));
+      const p=rewardProgress[id]||{};
+      const cfg={...DEFAULT_REWARD_CONFIG,...rewardConfig};
+
+      const requiredTests=Number(cfg.requiredSuccessfulTests)||3;
+      const requiredOpenings=Number(cfg.requiredOpenings)||10;
+      const openings=Number(p.validOpenings)||0;
+      const earnedNow=openings>=requiredOpenings && value>=requiredTests;
+
+      const update={
+        successfulTests:value,
+        totalTests:Math.max(Number(p.totalTests)||0,value),
+        updatedAt:serverTimestamp()
+      };
+
+      // If the reward is not already paid, the manual adjustment can
+      // grant or remove the reward immediately.
+      if(p.paid!==true){
+        update.earned=earnedNow;
+        update.earnedAt=earnedNow ? (p.earnedAt || serverTimestamp()) : null;
+        update.amountEarned=earnedNow ? Number(cfg.amount||0) : 0;
+      }
+
+      btn.disabled=true;
+      const oldText=btn.textContent;
+      btn.textContent="…";
+
+      try{
+        await setDoc(
+          doc(db,"eleves","abel","recompenses",id),
+          update,
+          {merge:true}
+        );
+        status.textContent="✓ Nombre de tests réussis ajusté — synchronisé avec Abel";
+      }catch(err){
+        alert("Ajustement impossible : "+(err.code||err.message));
+      }finally{
+        btn.disabled=false;
+        btn.textContent=oldText;
       }
     });
   });
