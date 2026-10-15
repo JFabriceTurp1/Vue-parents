@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Suivi Parent — Abel — V11</title>
+<title>Suivi Parent — Abel — V13</title>
 <style>
 :root{--bg:#f4f7fb;--card:#fff;--text:#1f2937;--muted:#64748b;--blue:#2563eb;--green:#16a34a;--border:#dbe3ef}
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(135deg,#eef3f8,#f8fafc);color:var(--text)}
@@ -69,7 +69,7 @@ h2{margin:22px 0 12px}.exercise-grid{display:grid;grid-template-columns:1fr 1fr;
 <header>
   <div class="top">
     <div><h1>👨‍👦 Suivi Parent — Abel</h1>
-<div class="version-badge">PARENT V11 — RÉCOMPENSES + VUE REPLIABLE</div><p class="sub">Progression des exercices de mathématiques</p></div>
+<div class="version-badge">PARENT V13 — SUPPRESSION SYNCHRONISÉE</div><p class="sub">Progression des exercices de mathématiques</p></div>
     <button id="logoutBtn" class="login hidden">Déconnexion</button>
   </div>
   <div id="status">Connexion à Firebase…</div>
@@ -127,6 +127,9 @@ h2{margin:22px 0 12px}.exercise-grid{display:grid;grid-template-columns:1fr 1fr;
   </summary>
   <div class="fold-content">
     <p class="fold-note">Cette partie est uniquement visible sur le portail Parent. Les règles enregistrées sont appliquées automatiquement sur le portail d’Abel.</p>
+    <div style="margin:0 0 14px;padding:12px 14px;border-radius:12px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af">
+      <strong>Contrôle d’activité :</strong> le temps ne progresse que lorsque la page est visible, active et qu’Abel interagit réellement. Après le délai d’inactivité, le compteur se met en pause. Une mini-question peut être exigée avant de valider la consultation.
+    </div>
 
     <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;background:#fff7ed;border:1px solid #fed7aa;border-radius:14px;padding:14px">
       <div>
@@ -144,8 +147,14 @@ h2{margin:22px 0 12px}.exercise-grid{display:grid;grid-template-columns:1fr 1fr;
       <div class="reward-field"><label>Tests réussis nécessaires</label><input id="rewardTests" type="number" min="1" max="20" step="1" value="3"></div>
       <div class="reward-field"><label>Note minimale (%)</label><input id="rewardScore" type="number" min="0" max="100" step="1" value="80"></div>
       <div class="reward-field"><label>Délai maximum (heures)</label><input id="rewardHours" type="number" min="1" max="720" step="1" value="72"></div>
-      <div class="reward-field"><label>Temps minimum dans le chapitre (s)</label><input id="rewardReadSeconds" type="number" min="5" max="3600" step="5" value="60"></div>
-      <div class="reward-field"><label>Délai entre 2 consultations comptées (min)</label><input id="rewardCooldown" type="number" min="0" max="1440" step="5" value="30"></div>
+      <div class="reward-field"><label>Temps d’activité réelle minimum (s)</label><input id="rewardReadSeconds" type="number" min="5" max="3600" step="5" value="120"></div>
+      <div class="reward-field"><label>Interactions minimum</label><input id="rewardInteractions" type="number" min="1" max="20" step="1" value="3"></div>
+      <div class="reward-field"><label>Pause après inactivité (s)</label><input id="rewardInactivity" type="number" min="15" max="1800" step="5" value="90"></div>
+      <div class="reward-field"><label>Délai entre 2 consultations comptées (min)</label><input id="rewardCooldown" type="number" min="0" max="1440" step="5" value="60"></div>
+      <div class="reward-field">
+        <label>Mini-question de vérification</label>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:850;color:#0f172a"><input id="rewardCheckQuestion" type="checkbox" checked> Obligatoire</label>
+      </div>
     </div>
 
     <button id="saveRewardRules" class="reward-save">💾 Enregistrer les règles</button>
@@ -156,7 +165,7 @@ h2{margin:22px 0 12px}.exercise-grid{display:grid;grid-template-columns:1fr 1fr;
 </details>
 
 <h2>Activité récente</h2>
-<div class="manage-note">Tu peux supprimer ici les tentatives de test. Après suppression, les statistiques de l’exercice sont recalculées automatiquement.</div>
+<div class="manage-note">Tu peux supprimer ici les tentatives de test. Après suppression, les statistiques Parent et les compteurs visibles par Abel sont recalculés automatiquement.</div>
 <section id="timeline" class="timeline"><div class="card">Aucune activité enregistrée pour le moment.</div></section>
 </div>
 
@@ -476,8 +485,11 @@ const DEFAULT_REWARD_CONFIG={
   requiredSuccessfulTests:3,
   minScorePct:80,
   windowHours:72,
-  minReadSeconds:60,
-  cooldownMinutes:30,
+  minReadSeconds:120,
+  minInteractions:3,
+  inactivitySeconds:90,
+  requireCheckQuestion:true,
+  cooldownMinutes:60,
   exerciseEnabled:{}
 };
 let rewardConfig={...DEFAULT_REWARD_CONFIG};
@@ -513,7 +525,10 @@ function fillRewardSettings(){
   document.getElementById("rewardScore").value=c.minScorePct;
   document.getElementById("rewardHours").value=c.windowHours;
   document.getElementById("rewardReadSeconds").value=c.minReadSeconds;
+  document.getElementById("rewardInteractions").value=c.minInteractions||3;
+  document.getElementById("rewardInactivity").value=c.inactivitySeconds||90;
   document.getElementById("rewardCooldown").value=c.cooldownMinutes;
+  document.getElementById("rewardCheckQuestion").checked=c.requireCheckQuestion!==false;
 }
 
 function renderRewardAdmin(){
@@ -629,8 +644,11 @@ document.getElementById("saveRewardRules").addEventListener("click",async()=>{
     requiredSuccessfulTests:Math.max(1,Math.round(Number(document.getElementById("rewardTests").value)||3)),
     minScorePct:Math.max(0,Math.min(100,Number(document.getElementById("rewardScore").value)||80)),
     windowHours:Math.max(1,Number(document.getElementById("rewardHours").value)||72),
-    minReadSeconds:Math.max(5,Number(document.getElementById("rewardReadSeconds").value)||60),
-    cooldownMinutes:Math.max(0,Number(document.getElementById("rewardCooldown").value)||0),
+    minReadSeconds:Math.max(5,Number(document.getElementById("rewardReadSeconds").value)||120),
+    minInteractions:Math.max(1,Math.round(Number(document.getElementById("rewardInteractions").value)||3)),
+    inactivitySeconds:Math.max(15,Number(document.getElementById("rewardInactivity").value)||90),
+    requireCheckQuestion:document.getElementById("rewardCheckQuestion").checked,
+    cooldownMinutes:Math.max(0,Number(document.getElementById("rewardCooldown").value)||60),
     exerciseEnabled:{...(rewardConfig.exerciseEnabled||{})},
     updatedAt:serverTimestamp()
   };
@@ -739,6 +757,54 @@ function render(){
 }
 
 
+
+async function reconcileRewardAfterAttemptDeletion(exerciseId, remainingRows){
+  const p=rewardProgress[exerciseId];
+  if(!p) return;
+
+  const cfg={...DEFAULT_REWARD_CONFIG,...rewardConfig};
+  const start=rewardTsMillis(p.cycleStartedAt);
+  if(!start) return;
+
+  const end=start+(Number(cfg.windowHours)||72)*3600000;
+  const rows=remainingRows.filter(r=>{
+    if(r.exerciceId!==exerciseId) return false;
+    const t=rewardTsMillis(r.date);
+    return t!==null && t>=start && t<=end;
+  });
+
+  const totalTests=rows.length;
+  const successfulTests=rows.filter(r=>{
+    const pct=Number(r.pourcentage);
+    return Number.isFinite(pct) && pct >= Number(cfg.minScorePct||80);
+  }).length;
+
+  const validOpenings=Number(p.validOpenings)||0;
+  const meetsReward=
+    validOpenings >= Number(cfg.requiredOpenings||10) &&
+    successfulTests >= Number(cfg.requiredSuccessfulTests||3);
+
+  const update={
+    totalTests,
+    successfulTests,
+    updatedAt:serverTimestamp()
+  };
+
+  // A reward that has already been paid is never clawed back automatically.
+  // Before payment, deletion of an invalid attempt can remove the earned state.
+  if(p.paid!==true){
+    update.earned=meetsReward;
+    update.earnedAt=meetsReward ? (p.earnedAt || serverTimestamp()) : null;
+    update.amountEarned=meetsReward ? Number(cfg.amount||0) : 0;
+  }
+
+  await setDoc(
+    doc(db,"eleves","abel","recompenses",exerciseId),
+    update,
+    {merge:true}
+  );
+}
+
 function listenData(){
   const qHist=query(
     collection(db,"eleves","abel","historique"),
@@ -786,9 +852,19 @@ function listenData(){
           btn.textContent="Suppression…";
 
           try{
-            // Only one Firebase operation. The onSnapshot listener then refreshes everything.
+            const deletedRow=historyRows.find(r=>r._id===id);
+            const remainingRows=historyRows.filter(r=>r._id!==id);
+
             await deleteDoc(doc(db,"eleves","abel","historique",id));
-            status.textContent="✓ Tentative supprimée";
+
+            if(deletedRow?.exerciceId){
+              await reconcileRewardAfterAttemptDeletion(
+                deletedRow.exerciceId,
+                remainingRows
+              );
+            }
+
+            status.textContent="✓ Tentative supprimée — compteurs Abel recalculés";
           }catch(error){
             console.error("Suppression impossible",error);
             alert("Suppression impossible : "+(error.code||error.message));
